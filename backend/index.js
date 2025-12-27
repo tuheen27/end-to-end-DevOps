@@ -4,11 +4,24 @@ const cors = require("cors");
 const express = require("express");
 const app = express();
 const mongoose = require('mongoose');
+const promClient = require('prom-client');
+const morgan = require('morgan');
 
 connection();
 
+app.use(morgan('combined'));  // Logging middleware
 app.use(express.json());
 app.use(cors());
+
+// Prometheus metrics
+const register = new promClient.Registry();
+promClient.collectDefaultMetrics({ register });
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+});
 
 // Health check endpoints
 
