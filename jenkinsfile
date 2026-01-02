@@ -2,20 +2,62 @@ pipeline {
     agent any
 
     stages {
-        stage('Build') {
+        stage('checkout') {
             steps {
-                echo 'Building..'
+                echo 'Checking out source code...'
+                git branch: 'main', url: 'https://github.com/tuheen27/end-to-end-DevOps.git'
+                echo 'Source code checked out successfully.'
             }
         }
+        
+        stage('build') {
+            steps {
+                echo 'Building the application...'
+                sh 'docker-compose build --no-cache'
+                echo 'Build completed successfully.'
+            }
+        }
+        
         stage('Test') {
             steps {
-                echo 'Testing..'
+                echo 'Running tests...'
+                sh '''
+                    docker-compose up -d db
+                    sleep 10
+                    docker-compose up -d backend
+                    sleep 5
+                    curl -f http://localhost:5000/health || exit 1
+                    docker-compose up -d frontend
+                    sleep 5
+                    curl -f http://localhost:3000 || exit 1
+                    echo 'All tests passed!'
+                '''
             }
         }
+        
         stage('Deploy') {
             steps {
-                echo 'Deploying....'
+                echo 'Deploying application...'
+                sh '''
+                    docker-compose down || true
+                    docker-compose up -d
+                    docker-compose ps
+                '''
+                echo 'Deployment completed.'
             }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+            sh 'docker-compose down || true'
+        }
+        always {
+            sh 'docker system prune -f || true'
         }
     }
 }
