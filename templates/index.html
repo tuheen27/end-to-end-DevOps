@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Number Guessing Game</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: inline-block;
+            max-width: 600px;
+        }
+        .btn-difficulty {
+            margin: 5px;
+        }
+        .history {
+            margin-top: 20px;
+        }
+        .history-list {
+            list-style: none;
+            padding: 0;
+        }
+        .history-list li {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px 10px;
+            background-color: #eee;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Number Guessing Game</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if not game_in_progress %}
+            <h2>Select Difficulty</h2>
+            <form action="/start" method="post">
+                {% for diff in difficulties %}
+                    <button type="submit" name="difficulty" value="{{ diff }}" class="btn btn-primary btn-difficulty">{{ diff.capitalize() }}</button>
+                {% endfor %}
+            </form>
+        {% else %}
+            <p>Attempts left: <strong>{{ attempts_left }}</strong></p>
+            <form action="/guess" method="post" class="form-inline d-inline-block">
+                <input type="number" name="guess" class="form-control mb-2 mr-sm-2" required autofocus>
+                <button type="submit" class="btn btn-success mb-2">Guess</button>
+            </form>
+            <a href="/reset" class="btn btn-danger mb-2">Reset Game</a>
+            
+            {% if history %}
+            <div class="history">
+                <h4>Your Guesses:</h4>
+                <ul class="history-list">
+                    {% for item in history %}
+                        <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        {% endif %}
+        <div class="mt-3">
+            <a href="/leaderboard" class="btn btn-info">View Leaderboard</a>
+        </div>
+    </div>
+</body>
+</html>
