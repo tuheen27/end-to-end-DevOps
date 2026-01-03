@@ -3,40 +3,27 @@ name: Build and Test Docker Image
 on:
   push:
     branches:
-      - master # Triggers the workflow on push events to the master branch
+      - master
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    runs-on: ubuntu-latest
 
     steps:
-      # 1. Get the code from the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Build the Docker image
-      # We load it into the local Docker daemon to be used by the test step.
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./app
-          file: ./app/dockerfile
-          load: true # Load the image to the local Docker daemon
-          push: false # Ensure the image is not pushed
-          tags: local/end-to-end-devops:latest # Use a local tag for testing
+          context: ./game
+          file: ./game/dockerfile
+          load: true 
+          push: false 
+          tags: local/end-to-end-devops:latest
 
-      # 3. Test the application after building
       - name: Test Application
         run: |
-          echo "Starting container for testing..."
-          # Run the container in the background and map the port
           docker run -d --name game-app -p 5000:5000 local/end-to-end-devops:latest
-          
-          echo "Waiting for application to start..."
           sleep 15
-          
-          echo "Checking application health..."
-          # Use curl to test the application. The -f flag fails the command on HTTP errors.
           curl -f http://localhost:5000
-          
-          echo "Test successful! Application is running."
