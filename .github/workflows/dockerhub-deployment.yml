@@ -1,4 +1,4 @@
-name: Build and Test Docker Image
+name: Build, Test, and Push Docker Image
 
 on:
   push:
@@ -6,24 +6,59 @@ on:
       - master
 
 jobs:
-  build-and-test:
+  build-test-and-push:
     runs-on: ubuntu-latest
-
     steps:
+      # 1. Checkout the repository code to the runner
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image
+      # 2. Set up Docker Buildx for better performance and features
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. Log in to Docker Hub using secrets
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+      # 4. Build the image and load it into the local daemon for testing
+      - name: Build and load local image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./game  # Correct context: your code is in the 'game' folder
+          file: ./game/dockerfile # Correct path to the Dockerfile
+          load: true # Load the image to the local Docker daemon
+          push: false # DO NOT push yet. We test first.
+          tags: tuheen27/end-to-end-devops:latest
+
+      # 5. Run an integration test on the locally built image
+      - name: Test application container
+        run: |
+          echo "Starting container for integration test..."
+          docker run -d -p 5000:5000 --name test-container tuheen27/end-to-end-devops:latest
+          
+          echo "Waiting 15 seconds for container to initialize..."
+          sleep 15
+          
+          echo "Pinging application endpoint..."
+          # The -f flag makes curl fail with an error code if the HTTP status is not 2xx
+          curl -f http://localhost:5000
+          
+          echo "✅ Test successful! Application is responsive."
+          
+          echo "Cleaning up test resources..."
+          docker stop test-container
+          docker rm test-container
+
+      # 6. Push the image to Docker Hub ONLY if the test step succeeded
+      - name: Push image to Docker Hub
+        if: success() # This condition ensures this step only runs if all previous steps passed
         uses: docker/build-push-action@v5
         with:
           context: ./game
           file: ./game/dockerfile
-          load: true 
-          push: false 
-          tags: local/end-to-end-devops:latest
-
-      - name: Test Application
-        run: |
-          docker run -d --name game-app -p 5000:5000 local/end-to-end-devops:latest
-          sleep 15
-          curl -f http://localhost:5000
+          push: true # Now, we push the validated image
+          tags: tuheen27/end-to-end-devops:latest
