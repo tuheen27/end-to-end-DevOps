@@ -1,0 +1,60 @@
+name: Build, Test, and Push Docker Image
+
+on:
+  push:
+    branches:
+      - master # Triggers the workflow on push events to the master branch
+
+jobs:
+  build-test-and-push:
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+
+    steps:
+      # 1. Get the code from the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Log in to Docker Hub using secrets
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 3. Build the Docker image but do not push it yet
+      # We load it into the local Docker daemon to be used by the test step.
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./game
+          file: ./game/dockerfile
+          load: true # Load the image to the local Docker daemon
+          push: false # Do not push yet
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/end-to-end-devops:latest
+
+      # 4. Test the application after building
+      - name: Test Application
+        run: |
+          echo "Starting container for testing..."
+          # Run the container in the background and map the port
+          docker run -d --name game-app -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/end-to-end-devops:latest
+          
+          echo "Waiting for application to start..."
+          sleep 15
+          
+          echo "Checking application health..."
+          # Use curl to test the application. The -f flag fails the command on HTTP errors (like 404 or 500).
+          curl -f http://localhost:5000
+          
+          echo "Test successful! Application is running."
+
+      # 5. Push the Docker image only if the test step was successful
+      - name: Push Docker image
+        if: success() # This step only runs if all previous steps succeeded
+        uses: docker/build-push-action@v5
+        with:
+          context: ./game
+          file: ./game/dockerfile
+          push: true # Now, push the image
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/end-to-end-devops:latest
