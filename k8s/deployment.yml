@@ -1,36 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: eks-sample-linux-deployment
-  namespace: eks-sample-app
+  name: number-guesser
   labels:
-    app: eks-sample-linux-app
+    app: number-guesser
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: eks-sample-linux-app
+      app: number-guesser
   template:
     metadata:
       labels:
-        app: eks-sample-linux-app
+        app: number-guesser
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-                - arm64
       containers:
       - name: number-guesser
-        image: tuheen27/end-to-end-devops
+        image: tuheen27/end-to-end-devops:latest
+        imagePullPolicy: Always
         ports:
-        - name: http
-          containerPort: 5000
-        imagePullPolicy: IfNotPresent
-      nodeSelector:
-        kubernetes.io/os: linux
+        - containerPort: 5000
