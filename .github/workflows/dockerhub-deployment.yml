@@ -19,8 +19,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./game
-          file: ./game/dockerfile
+          context: ./app
+          file: ./app/dockerfile
           load: true # Load the image to the local Docker daemon
           push: false # Ensure the image is not pushed
           tags: local/end-to-end-devops:latest # Use a local tag for testing
